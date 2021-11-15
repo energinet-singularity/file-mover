@@ -41,8 +41,30 @@ spec:
             value: {{ .Values.smbOutputPath | default "" }}
           - name: SLEEPTIME
             value: {{ .Values.smbSleepTime | default 5 | quote }}
+          volumeMounts:
+            {{- with .Values.folderMounts }}
+            {{- if .input.enabled }}
+          - mountPath: /input
+            name: input-folder
+            {{- end }}
+            {{- if .output.enabled }}
+          - mountPath: /output
+            name: output-folder
+            {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      {{- with .Values.folderMounts }}
+      {{- if .input.enabled }}
+      - name: input-folder
+        {{ .input.volume | toYaml }}
+      {{- end }}
+      {{- if .output.enabled }}
+      - name: output-folder
+        {{ .output.volume | toYaml }}
+      {{- end }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

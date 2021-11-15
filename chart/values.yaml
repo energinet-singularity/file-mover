@@ -37,3 +37,11 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+folderMounts:
+  input:
+    enabled: false
+    volume: {}
+  output:
+    enabled: false
+    volume: {}
