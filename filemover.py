@@ -102,7 +102,8 @@ def move_files(input_path, output_path, dryrun=False):
         if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
 
     #Unpack gzip'd files
-    for output_file in filedict:
+    keylist = list(filedict.keys())
+    for output_file in keylist:
         if output_file[-3:] == '.gz':
             filedict[output_file[:-3]] = gzip.decompress(filedict.pop(output_file))
 
