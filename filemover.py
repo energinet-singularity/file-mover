@@ -1,5 +1,5 @@
 #Import dependencies
-import os, sys, smbclient, sched, time, smbclient.path as smb_path #Not sure why .path is not directly accessible
+import os, sys, gzip, smbclient, sched, time, smbclient.path as smb_path #Not sure why .path is not directly accessible
 
 #Load/set variables
 smb_username = os.environ.get('SMB_USERNAME')                                       #No default value
@@ -100,6 +100,12 @@ def move_files(input_path, output_path, dryrun=False):
         else:
             if remove_input and not dryrun: remove_in(input_path + input_file)
         if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
+
+    #Unpack gzip'd files
+    keylist = list(filedict.keys())
+    for output_file in keylist:
+        if output_file[-3:] == '.gz':
+            filedict[output_file[:-3]] = gzip.decompress(filedict.pop(output_file))
 
     #Write files from directory
     for output_file in filedict:
