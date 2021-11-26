@@ -8,18 +8,43 @@ image:
   repository: file-mover
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
+<<<<<<< Updated upstream
   tag: "0.2.1"
+=======
+  tag: "1.0.0"
+>>>>>>> Stashed changes
 
+#Following settings (credentials) must be commented out if using samba
+#smbUserName: "user"
+#smbPassword: "pass"
+
+#Depending on the direction of data-flow use either input or output path or both
+#smbInputPath: "//server/input/"
+#smbOutputPath: "//server/output/"
+
+#If not using samba, remember to mount volumes to the /input and /output paths.
+#This is done by specifying folderMounts.input.volume/foldermounts.output.volume.
+folderMounts:
+  input:
+    enabled: false
+    volume: {}
+  output:
+    enabled: false
+    volume: {}
+
+#Following setting can be used to change the default 'sleeptime' before looking for new files
+#smbSleepTime: "5"
+
+#Default settings not used in this setup
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
-
 podAnnotations: {}
-
 podSecurityContext: {}
-
 securityContext: {}
-
+nodeSelector: {}
+tolerations: []
+affinity: {}
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
@@ -31,17 +56,3 @@ resources: {}
   # requests:
   #   cpu: 100m
   #   memory: 128Mi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
-
-folderMounts:
-  input:
-    enabled: false
-    volume: {}
-  output:
-    enabled: false
-    volume: {}
