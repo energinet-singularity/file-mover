@@ -29,9 +29,4 @@ smbInputPath: <//this/is/a/path>
 
 [^1]: Remember to set up the persistentVolumeClaim!
 
-### Roadmap
-
-- [x] Load first version to github
-- [ ] Decide what to do next
-
 See the [open issues](https://github.com/energinet-singularity/file-mover/issues) for a full list of proposed features (and known issues)
