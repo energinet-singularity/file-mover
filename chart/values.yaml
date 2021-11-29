@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: file-mover
+  repository: ghcr.io/energinet-singularity/file-mover/energinet-singularity/file-mover
   pullPolicy: IfNotPresent
   tag: "1.0.0"
 
