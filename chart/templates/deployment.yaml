@@ -35,10 +35,14 @@ spec:
             value: {{ .Values.smbUserName | default "" }}
           - name: SMB_PASSWORD
             value: {{ .Values.smbPassword | default "" }}
+            {{- if .Values.smbInputPath }}
           - name: SMB_INPUTPATH
-            value: {{ .Values.smbInputPath | default "" }}
+            value: {{ .Values.smbInputPath }}
+            {{- end }}
+            {{- if .Values.smbOutputPath }}
           - name: SMB_OUTPUTPATH
-            value: {{ .Values.smbOutputPath | default "" }}
+            value: {{ .Values.smbOutputPath }}
+            {{- end }}
           - name: SLEEPTIME
             value: {{ .Values.smbSleepTime | default 5 | quote }}
           volumeMounts:
