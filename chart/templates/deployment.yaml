@@ -35,9 +35,9 @@ spec:
             value: {{ .Values.smbUserName | default "" }}
           - name: SMB_PASSWORD
             value: {{ .Values.smbPassword | default "" }}
-          - name: SMB_INPUT
+          - name: SMB_INPUTPATH
             value: {{ .Values.smbInputPath | default "" }}
-          - name: SMB_OUTPUT
+          - name: SMB_OUTPUTPATH
             value: {{ .Values.smbOutputPath | default "" }}
           - name: SLEEPTIME
             value: {{ .Values.smbSleepTime | default 5 | quote }}
