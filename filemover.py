@@ -1,5 +1,5 @@
 #Import dependencies
-import os, sys, gzip, smbclient, sched, time, smbclient.path as smb_path
+import os, sys, gzip, smbclient, sched, time
 
 #Load/set variables
 smb_username = os.environ.get('SMB_USERNAME')                                       #No default value
@@ -46,15 +46,15 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
         if input_path[-1] != input_path[0]: input_path = f"{input_path}{input_path[0]}"
 
         #Import relevant parts with alias'
-        from smbclient import listdir as listdir_in, remove as remove_in, open_file as open_in, stat as stat_in
-        isdir_in = smb_path.isdir
+        from smbclient import listdir as listdir_in, remove as remove_in, open_file as open_in
+        from smbclient.path import getmtime as getmtime_in, isdir as isdir_in
     else:
         #Add a slash/backslash to end if not there
         input_path = os.path.join(input_path, '')
 
         #Import relevant parts with alias'
-        from os import listdir as listdir_in, remove as remove_in, stat as stat_in
-        from os.path import isdir as isdir_in
+        from os import listdir as listdir_in, remove as remove_in
+        from os.path import getmtime as getmtime_in, isdir as isdir_in
         open_in = open
 
     #Load variables related to the output-side
@@ -64,7 +64,7 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
 
         #Import relevant parts with alias'
         from smbclient import open_file as open_out
-        isdir_out = smb_path.isdir
+        from smbclient.path import isdir as isdir_out
     else:
         #Add a slash/backslash to end if not there
         output_path = os.path.join(output_path, '')
@@ -96,17 +96,17 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
     #Load file-memory at first run if used
     if file_memory is None and use_memory:
         if smbclient._os.is_remote_path(input_path):
-            file_memory = {input_path+fi:smbclient.stat(input_path+fi) for fi in smbclient.listdir(input_path) if smbclient.path.isfile(input_path+fi)}
+            file_memory = {input_path+fi:smbclient.path.getmtime(input_path+fi) for fi in smbclient.listdir(input_path) if smbclient.path.isfile(input_path+fi)}
         else:
-            file_memory = {input_path+fi:os.stat(input_path+fi) for fi in os.listdir(input_path) if os.path.isfile(input_path+fi)}
+            file_memory = {input_path+fi:os.path.getmtime(input_path+fi) for fi in os.listdir(input_path) if os.path.isfile(input_path+fi)}
 
     #Read files into a dictionary
     for input_file_base in [fi for fi in listdir_in(input_path) if not isdir_in(input_path+fi)]:
         input_file = input_path+input_file_base
-        if not (input_file in file_memory.keys() and file_memory[input_file] == stat_in(input_file)):
+        if not (input_file in file_memory.keys() and file_memory[input_file] == getmtime_in(input_file)):
             try:
                 filedict[input_file_base] = open_in(input_file, "rb").read()
-                file_memory[input_file] = stat_in(input_file)
+                file_memory[input_file] = getmtime_in(input_file)
             except Exception as e:
                 print(f"Error when trying to read file '{input_file}'. Skipping it for now.")
             else:
