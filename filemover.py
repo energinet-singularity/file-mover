@@ -1,5 +1,5 @@
 #Import dependencies
-import os, sys, gzip, smbclient, sched, time, smbclient.path as smb_path #Not sure why .path is not directly accessible
+import os, sys, gzip, smbclient, sched, time
 
 #Load/set variables
 smb_username = os.environ.get('SMB_USERNAME')                                       #No default value
@@ -9,7 +9,8 @@ smb_outputpath = os.environ.get('SMB_OUTPUTPATH','/output')                     
 read_wait = int(os.environ.get('SLEEPTIME', 5))                                     #Default to 5 seconds between each read
 verbose = (os.environ.get('VERBOSE', 'FALSE')).upper() != 'FALSE'                   #Default to False (not writing extra logging messages)
 print_file = (os.environ.get('MEGAVERBOSE', 'FALSE')).upper() != 'FALSE'            #Default to False (do NOT use this unless testing - it is extremely verbose!)
-remove_input = (os.environ.get('CLEAR_INPUT', 'TRUE')).upper() == 'TRUE'            #Default to True (move - not copy)
+remove_input = (os.environ.get('CLEAR_INPUT', 'FALSE')).upper() != 'FALSE'          #Default to False (do not try to delete files)
+use_memory = (os.environ.get('USE_MEMORY', 'TRUE')).upper() == 'TRUE'               #Default to True (remember which files have been handled and ignore them)
 heartbeat_time = 60                                                                 #Heartbeat to show logline each x seconds
 filemove_count = 0                                                                  #Global counter to present at heatbeat
 
@@ -21,6 +22,7 @@ print('- SMB_OUTPUTPATH: {}'.format("<SMB SHARE>" if smb_outputpath[0:2] == r"\\
 print(f'- SLEEPTIME: {read_wait}')
 print(f'- VERBOSE: {verbose}')
 print(f'- CLEAR_INPUT: {remove_input}')
+print(f'- USE_MEMORY: {use_memory}')
 print('')
 
 #Initialize client and scheduler
@@ -29,7 +31,7 @@ if smb_username != None:
 timer = sched.scheduler(time.time, time.sleep)
 
 #Function that does the actual moving
-def move_files(input_path, output_path, dryrun=False):
+def move_files(input_path, output_path, dryrun=False, file_memory=None):
     #This function takes two paths as input and moves all files from input_path to output_path
     #Subfolders are currently ignored, files will be deleted from input folder based on the variable remove_input.
     #If 'dryrun' is set, nothing happens, it will only verbose expected actions.
@@ -45,16 +47,16 @@ def move_files(input_path, output_path, dryrun=False):
 
         #Import relevant parts with alias'
         from smbclient import listdir as listdir_in, remove as remove_in, open_file as open_in
-        isdir_in = smb_path.isdir
+        from smbclient.path import getmtime as getmtime_in, isdir as isdir_in
     else:
         #Add a slash/backslash to end if not there
         input_path = os.path.join(input_path, '')
 
         #Import relevant parts with alias'
         from os import listdir as listdir_in, remove as remove_in
-        from os.path import isdir as isdir_in
+        from os.path import getmtime as getmtime_in, isdir as isdir_in
         open_in = open
-    
+
     #Load variables related to the output-side
     if output_path[0:2] == r'\\' or output_path[0:2] == '//':
         #Add a slash/backslash to end if not there
@@ -62,7 +64,7 @@ def move_files(input_path, output_path, dryrun=False):
 
         #Import relevant parts with alias'
         from smbclient import open_file as open_out
-        isdir_out = smb_path.isdir
+        from smbclient.path import isdir as isdir_out
     else:
         #Add a slash/backslash to end if not there
         output_path = os.path.join(output_path, '')
@@ -91,15 +93,29 @@ def move_files(input_path, output_path, dryrun=False):
             print("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
         sys.exit(1)
 
-    #Read files into a dictionary
-    for input_file in listdir_in(input_path):
-        try:
-            filedict[input_file] = open_in(input_path + input_file, "rb").read()
-        except Exception as e:
-            print("Error when trying to read file '{}'. Skipping it for now.".format(input_file))
+    #Load file-memory at first run if used
+    if file_memory is None and use_memory:
+        if smbclient._os.is_remote_path(input_path):
+            file_memory = {input_path+fi:smbclient.path.getmtime(input_path+fi) for fi in smbclient.listdir(input_path) if smbclient.path.isfile(input_path+fi)}
         else:
-            if remove_input and not dryrun: remove_in(input_path + input_file)
-        if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
+            file_memory = {input_path+fi:os.path.getmtime(input_path+fi) for fi in os.listdir(input_path) if os.path.isfile(input_path+fi)}
+
+    #Read files into a dictionary
+    for input_file_base in [fi for fi in listdir_in(input_path) if not isdir_in(input_path+fi)]:
+        input_file = input_path+input_file_base
+        if not (input_file in file_memory.keys() and file_memory[input_file] == getmtime_in(input_file)):
+            try:
+                filedict[input_file_base] = open_in(input_file, "rb").read()
+                file_memory[input_file] = getmtime_in(input_file)
+            except Exception as e:
+                print(f"Error when trying to read file '{input_file}'. Skipping it for now.")
+            else:
+                if remove_input and not dryrun:
+                    try:
+                        remove_in(input_file)
+                    except Exception as e:
+                        print(f"Warning: Was not allowed to delete file '{input_file}'.")
+            if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
 
     #Unpack gzip'd files
     keylist = list(filedict.keys())
@@ -117,7 +133,7 @@ def move_files(input_path, output_path, dryrun=False):
 
     #Set another timer in 'read_wait' seconds to run again.
     if verbose: print(f'Timer set to {read_wait} seconds - going to sleep..')
-    timer.enter(read_wait, 1, move_files, (input_path,output_path,dryrun))
+    timer.enter(read_wait, 1, move_files, (input_path,output_path,dryrun,file_memory))
 
 def log_alive():
     print('√v^√v^√v -- I have moved {} files until now..'.format(filemove_count))
