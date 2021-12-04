@@ -30,6 +30,26 @@ if smb_username != None:
     smbclient.ClientConfig(username=smb_username, password=smb_password)
 timer = sched.scheduler(time.time, time.sleep)
 
+#Add a slash/backslash to end of filepaths if not there
+if smb_inputpath[-1] != smb_inputpath[0]: smb_inputpath = f"{smb_inputpath}{smb_inputpath[0]}"
+if smb_outputpath[-1] != smb_outputpath[0]: smb_outputpath = f"{smb_outputpath}{smb_outputpath[0]}"
+
+#Load file_in module related to the input-side
+if smbclient._os.is_remote_path(smb_inputpath):
+    import smbclient as file_in
+    from smbclient import open_file as open_in
+else:
+    import os as file_in
+    open_in = open
+
+#Load file_out module related to the output-side
+if smbclient._os.is_remote_path(smb_outputpath):
+    import smbclient as file_out
+    from smbclient import open_file as open_out
+else:
+    import os as file_out
+    open_out = open
+
 #Function that does the actual moving
 def move_files(input_path, output_path, dryrun=False, file_memory=None):
     #This function takes two paths as input and moves all files from input_path to output_path
@@ -39,44 +59,11 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
     #Initialize variables
     filedict = {} 
     global filemove_count
-
-    #Load variables related to the input-side
-    if input_path[0:2] == r'\\' or input_path[0:2] == '//':
-        #Add a slash/backslash to end if not there
-        if input_path[-1] != input_path[0]: input_path = f"{input_path}{input_path[0]}"
-
-        #Import relevant parts with alias'
-        from smbclient import listdir as listdir_in, remove as remove_in, open_file as open_in
-        from smbclient.path import getmtime as getmtime_in, isdir as isdir_in
-    else:
-        #Add a slash/backslash to end if not there
-        input_path = os.path.join(input_path, '')
-
-        #Import relevant parts with alias'
-        from os import listdir as listdir_in, remove as remove_in
-        from os.path import getmtime as getmtime_in, isdir as isdir_in
-        open_in = open
-
-    #Load variables related to the output-side
-    if output_path[0:2] == r'\\' or output_path[0:2] == '//':
-        #Add a slash/backslash to end if not there
-        if output_path[-1] != output_path[0]: output_path = f"{output_path}{output_path[0]}"
-
-        #Import relevant parts with alias'
-        from smbclient import open_file as open_out
-        from smbclient.path import isdir as isdir_out
-    else:
-        #Add a slash/backslash to end if not there
-        output_path = os.path.join(output_path, '')
-
-        #Import relevant parts with alias'
-        from os.path import isdir as isdir_out
-        open_out = open
     
     #Verify folders are found - handle errors as intelligent as possible.
     try:
-        if not isdir_in(input_path): raise FileNotFoundError(f"'{input_path}' is not a valid directory.")
-        if not isdir_out(output_path): raise FileNotFoundError(f"'{output_path}' is not a valid directory.")
+        if not file_in.path.isdir(input_path): raise FileNotFoundError(f"'{input_path}' is not a valid directory.")
+        if not file_out.path.isdir(output_path): raise FileNotFoundError(f"'{output_path}' is not a valid directory.")
     except FileNotFoundError as e:
         print(e)
         sys.exit(1)
@@ -95,27 +82,25 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
 
     #Load file-memory at first run if used
     if file_memory is None and use_memory:
-        if smbclient._os.is_remote_path(input_path):
-            file_memory = {input_path+fi:smbclient.path.getmtime(input_path+fi) for fi in smbclient.listdir(input_path) if smbclient.path.isfile(input_path+fi)}
-        else:
-            file_memory = {input_path+fi:os.path.getmtime(input_path+fi) for fi in os.listdir(input_path) if os.path.isfile(input_path+fi)}
+        file_memory = {input_path+fi:file_in.path.getmtime(input_path+fi) for fi in file_in.listdir(input_path) if file_in.path.isfile(input_path+fi)}
 
     #Read files into a dictionary
-    for input_file_base in [fi for fi in listdir_in(input_path) if not isdir_in(input_path+fi)]:
-        input_file = input_path+input_file_base
-        if not (input_file in file_memory.keys() and file_memory[input_file] == getmtime_in(input_file)):
+    for input_file_name in [fi for fi in file_in.listdir(input_path) if file_in.path.isfile(input_path+fi)]:
+        input_file = input_path+input_file_name
+        if not (input_file in file_memory.keys() and file_memory[input_file] == file_in.path.getmtime(input_file)):
             try:
-                filedict[input_file_base] = open_in(input_file, "rb").read()
-                file_memory[input_file] = getmtime_in(input_file)
+                with open_in(input_file, "rb") as in_file:
+                    filedict[input_file_name] = in_file.read()
+                file_memory[input_file] = file_in.path.getmtime(input_file)
+                if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
             except Exception as e:
                 print(f"Error when trying to read file '{input_file}'. Skipping it for now.")
             else:
                 if remove_input and not dryrun:
                     try:
-                        remove_in(input_file)
+                        file_in.remove(input_file)
                     except Exception as e:
                         print(f"Warning: Was not allowed to delete file '{input_file}'.")
-            if verbose or dryrun: print(f"Read file '{input_file}' from input folder.")
 
     #Unpack gzip'd files
     keylist = list(filedict.keys())
@@ -125,7 +110,9 @@ def move_files(input_path, output_path, dryrun=False, file_memory=None):
 
     #Write files from directory
     for output_file in filedict:
-        if not dryrun: open_out(output_path + output_file, "wb").write(filedict[output_file])
+        if not dryrun: 
+            with open_out(output_path + output_file, "wb") as out_file:
+                out_file.write(filedict[output_file])
         if verbose or dryrun: print(f"Written file '{output_file}' to output folder.")
         if print_file: print(filedict[output_file])
 
