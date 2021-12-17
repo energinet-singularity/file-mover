@@ -75,32 +75,6 @@ else:
     from os.path import isdir as isdir_out
     open_out = open
 
-# Verify folders are found - handle errors as intelligent as possible.
-try:
-    if not isdir_in(smb_inputpath):
-        raise FileNotFoundError(f"'{smb_inputpath}' is not a valid directory.")
-    if not isdir_out(smb_outputpath):
-        raise FileNotFoundError(f"'{smb_outputpath}' is not a valid directory.")
-except FileNotFoundError as e:
-    print(e)
-    sys.exit(1)
-except ValueError as e:
-    print("SMB server not found. {}".format(str(e).split(":")[-1]))
-    sys.exit(1)
-except Exception as e:
-    if type(e).__name__ == 'SMBAuthenticationError':
-        print("Authentication error when connecting to fileshare.")
-        print(e)
-    elif type(e).__name__ == 'SMBException' or type(e).__name__ == 'NotFound':
-        print(e)
-    else:
-        print("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
-    sys.exit(1)
-
-# Load file-memory
-file_memory = {smb_inputpath+fi: getmtime_in(smb_inputpath+fi)
-               for fi in listdir_in(smb_inputpath) if isfile_in(smb_inputpath+fi)}
-
 
 # Function that unpacks binaries in case they are gzip'd
 def unpack_binary(filedict):
@@ -190,7 +164,34 @@ def log_alive():
 
 
 # Main code
-print("Initialization complete - Starting loop..")
-timer.enter(0, 1, move_files, (smb_inputpath, smb_outputpath, file_memory))
-timer.enter(heartbeat_time, 1, log_alive)
-timer.run()
+if __name__ == "__main__":
+    # Verify folders are found - handle errors as intelligent as possible.
+    try:
+        if not isdir_in(smb_inputpath):
+            raise FileNotFoundError(f"'{smb_inputpath}' is not a valid directory.")
+        if not isdir_out(smb_outputpath):
+            raise FileNotFoundError(f"'{smb_outputpath}' is not a valid directory.")
+    except FileNotFoundError as e:
+        print(e)
+        sys.exit(1)
+    except ValueError as e:
+        print("SMB server not found. {}".format(str(e).split(":")[-1]))
+        sys.exit(1)
+    except Exception as e:
+        if type(e).__name__ == 'SMBAuthenticationError':
+            print("Authentication error when connecting to fileshare.")
+            print(e)
+        elif type(e).__name__ == 'SMBException' or type(e).__name__ == 'NotFound':
+            print(e)
+        else:
+            print("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
+        sys.exit(1)
+
+    # Load file-memory
+    file_memory = {smb_inputpath+fi: getmtime_in(smb_inputpath+fi)
+                   for fi in listdir_in(smb_inputpath) if isfile_in(smb_inputpath+fi)}
+
+    print("Initialization complete - Starting loop..")
+    timer.enter(0, 1, move_files, (smb_inputpath, smb_outputpath, file_memory))
+    timer.enter(heartbeat_time, 1, log_alive)
+    timer.run()
