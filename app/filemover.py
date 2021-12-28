@@ -5,7 +5,7 @@ import gzip
 import smbclient
 import sched
 import time
-import datetime  # Ignore linting error - used in string that is evaluated at runtime.
+import datetime
 
 # Load/set variables
 # - SMB Username and Password, if SMB is used
@@ -26,19 +26,6 @@ use_memory = (os.environ.get('USE_MEMORY', 'TRUE')).upper() == 'TRUE'
 archive_filename = "'{pre}_{fn}'.format(pre = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), fn = output_file)"
 heartbeat_time = 60
 filemove_count = 0
-
-# Output the current state to the log
-print('Starting filemover script with following settings:')
-print(f'- SMB_USERNAME: {smb_username}')
-print(f'- SMB_PASSWORD: {"<HIDDEN>" if smb_password != None else smb_password}')
-print('- SMB_INPUTPATH: {}'.format("<SMB SHARE>" if smb_inputpath[0:2] == r"\\" else smb_inputpath))
-print('- SMB_OUTPUTPATH: {}'.format("<SMB SHARE>" if smb_outputpath[0:2] == r"\\" else smb_outputpath))
-print(f'- SLEEPTIME: {read_wait}')
-print(f'- ARCHIVE: {archive}')
-print(f'- VERBOSE: {verbose}')
-print(f'- CLEAR_INPUT: {remove_input}')
-print(f'- USE_MEMORY: {use_memory}')
-print('')
 
 # Initialize client and scheduler
 if smb_username is not None:
@@ -84,7 +71,7 @@ else:
 
 
 # Function that unpacks binaries in case they are gzip'd
-def unpack_binary(filedict):
+def unpack_binary(filedict: dict, verbose: bool =False) -> dict:
     # Unpack gzip'd files
     keylist = list(filedict.keys())
     for output_file in keylist:
@@ -92,6 +79,8 @@ def unpack_binary(filedict):
             try:
                 # Note - uses 'pop' to remove the entry from the dictionary
                 filedict[output_file[:-3]] = gzip.decompress(filedict.pop(output_file))
+                if verbose:
+                    print(f"File '{output_file}' was unzipped.")
             except Exception:
                 print(f"Warning: Could not unpack '{output_file}' - skipping it.")
                 try:
@@ -102,7 +91,7 @@ def unpack_binary(filedict):
 
 
 # Write files from directory
-def read_files(input_path, file_memory):
+def read_files(input_path: str, file_memory: str, verbose: bool =False) -> dict:
     filedict = {}
 
     for input_file_name in [fi for fi in listdir_in(input_path) if isfile_in(input_path+fi)]:
@@ -131,7 +120,7 @@ def read_files(input_path, file_memory):
 
 
 # Write files from directory
-def write_file(filedict, output_path, filename_structure="f'{output_file}'"):
+def write_file(filedict: dict, output_path: str, filename_structure: str ="f'{output_file}'", verbose: str =False):
     """This function will output files from filedict to output_path
 
     Filedict must be a dictionary with filename as key and contents as
@@ -148,22 +137,32 @@ def write_file(filedict, output_path, filename_structure="f'{output_file}'"):
             with open_out(output_path + eval(filename_structure), "wb") as out_file:
                 out_file.write(filedict[output_file])
             if verbose:
-                print(f"Written file '{eval(filename_structure)}' to output folder ({output_path}).")
+                print(f"Written file '{eval(filename_structure)}' to output folder '{output_path}'.")
             if print_file:
                 print(filedict[output_file])
         except Exception:
-            print(f"Warning: Could not write file '{eval(filename_structure)}', skipping it.")
+            print(f"Warning: Could not write file '{eval(filename_structure)}' to '{output_path}', skipping it.")
+
+
+def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict =None,
+                     archive: bool =False, verbose: bool =False):
+    global filemove_count
+
+    filemove_count += len(move_files(input_path, output_path, file_memory, archive, verbose))
+
+    # Set another timer in 'read_wait' seconds to run again.
+    if verbose:
+        print(f'Timer set to {read_wait} seconds - going to sleep..')
+    timer.enter(read_wait, 1, move_files_timer, (read_wait, input_path, output_path, file_memory, archive, verbose))
 
 
 # Function that does the actual moving
-def move_files(input_path, output_path, file_memory=None):
+def move_files(input_path: str, output_path: str, file_memory: dict =None, archive: bool =False, verbose: bool =False) -> dict:
     # This function takes two paths as input and moves all files from input_path to output_path
     # Subfolders are currently ignored, files will be deleted from input folder based on the variable remove_input.
 
-    global filemove_count
-
     # Read files into a dictionary
-    filedict = read_files(input_path, file_memory)
+    filedict = read_files(input_path, file_memory, verbose)
 
     # Archive files if archiving is enabled
     if archive:
@@ -173,17 +172,12 @@ def move_files(input_path, output_path, file_memory=None):
             except Exception:
                 print('Error: Path {} was not found and could not be created.'.format(output_path+'archive/'))
 
-        write_file(filedict, output_path+'archive/', archive_filename)
+        write_file(filedict, output_path+'archive/', archive_filename, verbose)
 
     # Write files
-    write_file(filedict, output_path)
+    write_file(filedict, output_path, verbose=verbose)
 
-    filemove_count += len(filedict)
-
-    # Set another timer in 'read_wait' seconds to run again.
-    if verbose:
-        print(f'Timer set to {read_wait} seconds - going to sleep..')
-    timer.enter(read_wait, 1, move_files, (input_path, output_path, file_memory))
+    return filedict
 
 
 def log_alive():
@@ -215,11 +209,24 @@ if __name__ == "__main__":
             print("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
         sys.exit(1)
 
+    # Output the current state to the log
+    print('Starting filemover script with following settings:')
+    print(f'- SMB_USERNAME: {smb_username}')
+    print(f'- SMB_PASSWORD: {"<HIDDEN>" if smb_password != None else smb_password}')
+    print('- SMB_INPUTPATH: {}'.format("<SMB SHARE>" if smb_inputpath[0:2] == r"\\" else smb_inputpath))
+    print('- SMB_OUTPUTPATH: {}'.format("<SMB SHARE>" if smb_outputpath[0:2] == r"\\" else smb_outputpath))
+    print(f'- SLEEPTIME: {read_wait}')
+    print(f'- ARCHIVE: {archive}')
+    print(f'- VERBOSE: {verbose}')
+    print(f'- CLEAR_INPUT: {remove_input}')
+    print(f'- USE_MEMORY: {use_memory}')
+    print('')
+
     # Load file-memory
     file_memory = {smb_inputpath+fi: getmtime_in(smb_inputpath+fi)
                    for fi in listdir_in(smb_inputpath) if isfile_in(smb_inputpath+fi)}
 
-    print("Initialization complete - Starting loop..")
-    timer.enter(0, 1, move_files, (smb_inputpath, smb_outputpath, file_memory))
+    print(f"Initialization complete - Starting loop at {datetime.datetime.now()}")
+    timer.enter(0, 1, move_files_timer, (read_wait, smb_inputpath, smb_outputpath, file_memory, archive, verbose))
     timer.enter(heartbeat_time, 1, log_alive)
     timer.run()
