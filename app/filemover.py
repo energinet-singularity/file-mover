@@ -71,7 +71,7 @@ else:
 
 
 # Function that unpacks binaries in case they are gzip'd
-def unpack_binary(filedict: dict, verbose: bool =False) -> dict:
+def unpack_binary(filedict: dict, verbose: bool = False) -> dict:
     # Unpack gzip'd files
     keylist = list(filedict.keys())
     for output_file in keylist:
@@ -91,7 +91,7 @@ def unpack_binary(filedict: dict, verbose: bool =False) -> dict:
 
 
 # Write files from directory
-def read_files(input_path: str, file_memory: str, verbose: bool =False) -> dict:
+def read_files(input_path: str, file_memory: str, verbose: bool = False) -> dict:
     filedict = {}
 
     for input_file_name in [fi for fi in listdir_in(input_path) if isfile_in(input_path+fi)]:
@@ -120,7 +120,7 @@ def read_files(input_path: str, file_memory: str, verbose: bool =False) -> dict:
 
 
 # Write files from directory
-def write_file(filedict: dict, output_path: str, filename_structure: str ="f'{output_file}'", verbose: str =False):
+def write_file(filedict: dict, output_path: str, filename_structure: str = "f'{output_file}'", verbose: str = False):
     """This function will output files from filedict to output_path
 
     Filedict must be a dictionary with filename as key and contents as
@@ -144,8 +144,8 @@ def write_file(filedict: dict, output_path: str, filename_structure: str ="f'{ou
             print(f"Warning: Could not write file '{eval(filename_structure)}' to '{output_path}', skipping it.")
 
 
-def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict =None,
-                     archive: bool =False, verbose: bool =False):
+def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict = None,
+                     archive: bool = False, verbose: bool = False):
     global filemove_count
 
     filemove_count += len(move_files(input_path, output_path, file_memory, archive, verbose))
@@ -157,7 +157,7 @@ def move_files_timer(read_wait: int, input_path: str, output_path: str, file_mem
 
 
 # Function that does the actual moving
-def move_files(input_path: str, output_path: str, file_memory: dict =None, archive: bool =False, verbose: bool =False) -> dict:
+def move_files(input_path: str, output_path: str, file_memory: dict = None, archive: bool = False, verbose: bool = False) -> dict:
     # This function takes two paths as input and moves all files from input_path to output_path
     # Subfolders are currently ignored, files will be deleted from input folder based on the variable remove_input.
 
