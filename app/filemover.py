@@ -157,7 +157,8 @@ def move_files_timer(read_wait: int, input_path: str, output_path: str, file_mem
 
 
 # Function that does the actual moving
-def move_files(input_path: str, output_path: str, file_memory: dict = None, archive: bool = False, verbose: bool = False) -> dict:
+def move_files(input_path: str, output_path: str, file_memory: dict = None, archive: bool = False,
+               verbose: bool = False) -> dict:
     # This function takes two paths as input and moves all files from input_path to output_path
     # Subfolders are currently ignored, files will be deleted from input folder based on the variable remove_input.
 
