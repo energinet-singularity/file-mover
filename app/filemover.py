@@ -5,6 +5,7 @@ import gzip
 import smbclient
 import sched
 import time
+import datetime  # Ignore linting error - used in string that is evaluated at runtime.
 
 # Load/set variables
 # - SMB Username and Password, if SMB is used
@@ -17,10 +18,12 @@ smb_outputpath = os.environ.get('SMB_OUTPUTPATH', '/output')
 
 # - Runtime-relevant variables (most loaded from environment)
 read_wait = int(os.environ.get('SLEEPTIME', 5))
+archive = (os.environ.get('ARCHIVE', 'FALSE')).upper() != 'FALSE'
 verbose = (os.environ.get('VERBOSE', 'FALSE')).upper() != 'FALSE'
 print_file = (os.environ.get('MEGAVERBOSE', 'FALSE')).upper() != 'FALSE'
 remove_input = (os.environ.get('CLEAR_INPUT', 'FALSE')).upper() != 'FALSE'
 use_memory = (os.environ.get('USE_MEMORY', 'TRUE')).upper() == 'TRUE'
+archive_filename = "'{pre}_{fn}'.format(pre = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'), fn = output_file)"
 heartbeat_time = 60
 filemove_count = 0
 
@@ -31,6 +34,7 @@ print(f'- SMB_PASSWORD: {"<HIDDEN>" if smb_password != None else smb_password}')
 print('- SMB_INPUTPATH: {}'.format("<SMB SHARE>" if smb_inputpath[0:2] == r"\\" else smb_inputpath))
 print('- SMB_OUTPUTPATH: {}'.format("<SMB SHARE>" if smb_outputpath[0:2] == r"\\" else smb_outputpath))
 print(f'- SLEEPTIME: {read_wait}')
+print(f'- ARCHIVE: {archive}')
 print(f'- VERBOSE: {verbose}')
 print(f'- CLEAR_INPUT: {remove_input}')
 print(f'- USE_MEMORY: {use_memory}')
@@ -69,9 +73,12 @@ else:
 
 # Load file_out module related to the output-side
 if smbclient._os.is_remote_path(smb_outputpath):
-    from smbclient import open_file as open_out
+    from smbclient import (
+        open_file as open_out,
+        mkdir as mkdir_out)
     from smbclient.path import isdir as isdir_out
 else:
+    from os import mkdir as mkdir_out
     from os.path import isdir as isdir_out
     open_out = open
 
@@ -124,17 +131,28 @@ def read_files(input_path, file_memory):
 
 
 # Write files from directory
-def write_file(filedict, output_path):
+def write_file(filedict, output_path, filename_structure="f'{output_file}'"):
+    """This function will output files from filedict to output_path
+
+    Filedict must be a dictionary with filename as key and contents as
+    value, i.e.: {'myfile.txt': 'thisismyonlyline'}.
+
+    filename_structure will be evaluated at write-time and can be used
+    to reshape the filename. Default is the 'clean' filename.
+    Use the var 'output_file' as pointer to the files actual name.
+    Example: filename_structure = "'{fn}'.format(fn = output_file[:3])"
+    """
+
     for output_file in filedict:
         try:
-            with open_out(output_path + output_file, "wb") as out_file:
+            with open_out(output_path + eval(filename_structure), "wb") as out_file:
                 out_file.write(filedict[output_file])
             if verbose:
-                print(f"Written file '{output_file}' to output folder ({output_path}).")
+                print(f"Written file '{eval(filename_structure)}' to output folder ({output_path}).")
             if print_file:
                 print(filedict[output_file])
         except Exception:
-            print(f"Warning: Could not write file '{output_file}', skipping it.")
+            print(f"Warning: Could not write file '{eval(filename_structure)}', skipping it.")
 
 
 # Function that does the actual moving
@@ -146,6 +164,16 @@ def move_files(input_path, output_path, file_memory=None):
 
     # Read files into a dictionary
     filedict = read_files(input_path, file_memory)
+
+    # Archive files if archiving is enabled
+    if archive:
+        if not isdir_out(output_path+'archive/'):
+            try:
+                mkdir_out(output_path+'archive/')
+            except Exception:
+                print('Error: Path {} was not found and could not be created.'.format(output_path+'archive/'))
+
+        write_file(filedict, output_path+'archive/', archive_filename)
 
     # Write files
     write_file(filedict, output_path)
