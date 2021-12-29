@@ -55,7 +55,7 @@ def read_files(path: str, file_ignore: dict = None, delete_files: bool = False) 
         if not (input_file in file_ignore.keys() and file_ignore[input_file] == client_path.getmtime(input_file)):
             try:
                 with read_func(input_file, "rb") as in_file:
-                    if input_file_name[:3] == ".gz":
+                    if input_file_name[-3:] == ".gz":
                         log.debug(f'Reading and unzipping file {input_file}')
                         filedict[input_file_name[:-3]] = gzip.decompress(in_file.read())
                     else:
