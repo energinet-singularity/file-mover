@@ -306,12 +306,12 @@ if __name__ == "__main__":
     log.info(f'- INPUT PATH: {input_path}')
     log.info(f'- OUTPUT PATH: {output_path}')
     if archive:
-        log.info(f'- ARCHIVING: ENABLED')
+        log.info('- ARCHIVING: ENABLED')
         log.info(f'- - PATH: {archive_path}')
         log.info(f'- - CLEAN INTERVAL: {archive_cleanup_hours} hours')
         log.info(f'- - MAX AGE: {archive_max_age_days} days')
     else:
-        log.info(f'- ARCHIVING: DISABLED')
+        log.info('- ARCHIVING: DISABLED')
     log.info(f'- SLEEPTIME: {read_wait}')
     log.info(f'- VERBOSE: {verbose}')
     log.info(f'- DELETE FILES: {delete_files}')
