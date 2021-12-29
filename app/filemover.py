@@ -71,7 +71,7 @@ else:
 
 
 # Function that unpacks binaries in case they are gzip'd
-def unpack_binary(filedict: dict, verbose: bool =False) -> dict:
+def unpack_binary(filedict: dict, verbose: bool = False) -> dict:
     # Unpack gzip'd files
     keylist = list(filedict.keys())
     for output_file in keylist:
@@ -91,7 +91,7 @@ def unpack_binary(filedict: dict, verbose: bool =False) -> dict:
 
 
 # Write files from directory
-def read_files(input_path: str, file_memory: str, verbose: bool =False) -> dict:
+def read_files(input_path: str, file_memory: str, verbose: bool = False) -> dict:
     filedict = {}
 
     for input_file_name in [fi for fi in listdir_in(input_path) if isfile_in(input_path+fi)]:
@@ -120,7 +120,7 @@ def read_files(input_path: str, file_memory: str, verbose: bool =False) -> dict:
 
 
 # Write files from directory
-def write_file(filedict: dict, output_path: str, filename_structure: str ="f'{output_file}'", verbose: str =False):
+def write_file(filedict: dict, output_path: str, filename_structure: str = "f'{output_file}'", verbose: str = False):
     """This function will output files from filedict to output_path
 
     Filedict must be a dictionary with filename as key and contents as
@@ -145,7 +145,7 @@ def write_file(filedict: dict, output_path: str, filename_structure: str ="f'{ou
 
 
 def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict =None,
-                     archive: bool =False, verbose: bool =False):
+                     archive: bool = False, verbose: bool = False):
     global filemove_count
 
     filemove_count += len(move_files(input_path, output_path, file_memory, archive, verbose))
@@ -157,7 +157,8 @@ def move_files_timer(read_wait: int, input_path: str, output_path: str, file_mem
 
 
 # Function that does the actual moving
-def move_files(input_path: str, output_path: str, file_memory: dict =None, archive: bool =False, verbose: bool =False) -> dict:
+def move_files(input_path: str, output_path: str, file_memory: dict = None, archive: bool = False,
+               verbose: bool = False) -> dict:
     # This function takes two paths as input and moves all files from input_path to output_path
     # Subfolders are currently ignored, files will be deleted from input folder based on the variable remove_input.
 
@@ -185,14 +186,13 @@ def log_alive():
     timer.enter(heartbeat_time, 1, log_alive)
 
 
-# Main code
-if __name__ == "__main__":
+def validate_paths(path_in: str, path_out: str):
     # Verify folders are found - handle errors as intelligent as possible.
     try:
-        if not isdir_in(smb_inputpath):
-            raise FileNotFoundError(f"'{smb_inputpath}' is not a valid directory.")
-        if not isdir_out(smb_outputpath):
-            raise FileNotFoundError(f"'{smb_outputpath}' is not a valid directory.")
+        if not isdir_in(path_in):
+            raise FileNotFoundError(f"'{path_in}' is not a valid directory.")
+        if not isdir_out(path_out):
+            raise FileNotFoundError(f"'{path_out}' is not a valid directory.")
     except FileNotFoundError as e:
         print(e)
         sys.exit(1)
@@ -209,7 +209,10 @@ if __name__ == "__main__":
             print("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
         sys.exit(1)
 
-    # Output the current state to the log
+
+# Main code
+if __name__ == "__main__":
+    # Output the initial state to the log
     print('Starting filemover script with following settings:')
     print(f'- SMB_USERNAME: {smb_username}')
     print(f'- SMB_PASSWORD: {"<HIDDEN>" if smb_password != None else smb_password}')
@@ -221,6 +224,8 @@ if __name__ == "__main__":
     print(f'- CLEAR_INPUT: {remove_input}')
     print(f'- USE_MEMORY: {use_memory}')
     print('')
+
+    validate_paths(smb_inputpath, smb_outputpath)
 
     # Load file-memory
     file_memory = {smb_inputpath+fi: getmtime_in(smb_inputpath+fi)
