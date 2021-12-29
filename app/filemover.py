@@ -144,7 +144,7 @@ def write_file(filedict: dict, output_path: str, filename_structure: str = "f'{o
             print(f"Warning: Could not write file '{eval(filename_structure)}' to '{output_path}', skipping it.")
 
 
-def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict =None,
+def move_files_timer(read_wait: int, input_path: str, output_path: str, file_memory: dict = None,
                      archive: bool = False, verbose: bool = False):
     global filemove_count
 
