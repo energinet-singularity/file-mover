@@ -48,8 +48,8 @@ def read_files(path: str, file_ignore: dict = None, delete_files: bool = False) 
         read_func = open
 
     # Go through the files in the directory
-    for input_file_name in [fi for fi in client.listdir(path) if client_path.isfile(path+fi)]:
-        input_file = path+input_file_name
+    for input_file_name in [fi for fi in client.listdir(path) if client_path.isfile(client_path.join(path, fi))]:
+        input_file = client_path.join(path, input_file_name)
         log.debug(f"Accessing file '{input_file}'")
 
         if not (input_file in file_ignore.keys() and file_ignore[input_file] == client_path.getmtime(input_file)):
@@ -92,14 +92,16 @@ def write_file(path: str, filedict: dict, filename_prepend: str = ''):
 
     # Load relevant lib into local variables
     if smbclient._os.is_remote_path(path):
+        client_path = smb_path
         write_func = smbclient.open_file
     else:
+        client_path = os_path
         write_func = open
 
     # Iterate through elements in the dictionary
     for output_file in filedict:
         try:
-            with write_func(path + filename_prepend + output_file, "wb") as out_file:
+            with write_func(client_path.join(path, filename_prepend + output_file), "wb") as out_file:
                 out_file.write(filedict[output_file])
             log.debug(f"File '{filename_prepend + output_file}' written to output folder '{path}'.")
         except Exception:
@@ -208,14 +210,14 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
     # Load relevant lib into local variables
     if smbclient._os.is_remote_path(input_path):
         client = smbclient
-        client_path = smbclient.path
+        client_path = smb_path
     else:
         client = os
-        client_path = os.path
+        client_path = os_path
 
     # Iterate over files in path and check their age agains max_file_age_days
     file_del_count = 0
-    filelist = [client_path.join(path, fi) for fi in client.listdir(path) if client_path.isfile(path+fi)]
+    filelist = [client_path.join(path, fi) for fi in client.listdir(path) if client_path.isfile(client_path.join(path, fi))]
     for file in filelist:
         if (time.time() - os.path.getmtime(file))/86400 > max_file_age_days:
             try:
@@ -230,13 +232,13 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
 def validate_path(path: str):
     # Load relevant lib into local variables
     if smbclient._os.is_remote_path(path):
-        read_path = smb_path
+        client_path = smb_path
     else:
-        read_path = os_path
+        client_path = os_path
 
     # Verify path exists and is reachable - handle errors as intelligent as possible.
     try:
-        if not read_path.isdir(path):
+        if not client_path.isdir(path):
             raise FileNotFoundError(f"'{path}' is not a valid directory.")
     except FileNotFoundError:
         log.exception("File not found")
