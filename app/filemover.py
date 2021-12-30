@@ -166,7 +166,7 @@ def move_files(input_path: str, output_path: str, archive_path: str = '', file_i
     """
 
     # Load files from input_path into a dict
-    filedict = read_files(input_path, file_ignore)
+    filedict = read_files(input_path, file_ignore, delete_files)
 
     # Archive files if archiving is enabled
     if archive_path != '':
