@@ -1,7 +1,7 @@
 name: Verify version has changed
 
 on:
-  pull:
+  pull_request:
     branches:
       - main
 
