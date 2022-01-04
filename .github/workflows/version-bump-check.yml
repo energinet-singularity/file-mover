@@ -1,0 +1,54 @@
+name: Verify version has changed
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  CHECK_VALUES_FILE: true
+
+jobs:
+  get-version-numbers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          path: new
+
+      - name: Checkout main
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          path: main
+
+      - name: Get new chart version number
+        run: | 
+          ERROR=false
+          NEW_VERSION=$(grep "version: " new/chart/Chart.yaml | cut -f2 -d' ')
+          OLD_VERSION=$(grep "version: " main/chart/Chart.yaml | cut -f2 -d' ')
+          VALUES_VERSION=$(grep "tag: " new/chart/values.yaml | cut -f2 -d'"')
+
+          echo "New helm Chart version is: '$NEW_VERSION'"
+          if [ "${{ env.CHECK_VALUES_FILE }}" == "true" ]; then
+            echo "New helm values version is: '$VALUES_VERSION'"
+            if [ "$NEW_VERSION" != "$VALUES_VERSION" ]; then
+              echo "Chart and values file versions do not match."
+              ERROR=true
+            fi
+          fi
+          
+          echo "Old helm Chart version is: '$OLD_VERSION'"
+          if [ "$NEW_VERSION" == "$OLD_VERSION" ]; then
+            echo "Chart version number has not been updated."
+            ERROR=true
+          fi
+          
+          if [ $ERROR == 'true' ]; then
+            exit 1
+          fi
+          
