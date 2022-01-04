@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CHECK_VALUES_FILE: ${{ false }}
+  CHECK_VALUES_FILE: false
 
 jobs:
   get-version-numbers:
@@ -17,31 +17,35 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-        
-      - name: Get new chart version number
-        run: | 
-          HELM_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "New helm Chart version is: '$HELM_VERSION'"
-          if [ ${{ env.CHECK_VALUES_FILE }} ]; then
-            VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
-            echo "Helm values version is: '$VALUES_VERSION'"
-            if [ "$HELM_VERSION" != "$VALUES_VERSION" ]; then
-              echo "Chart and values file versions do not match."
-              exit 1
-            fi
-          fi
-          
+        with:
+          path: new
+
       - name: Checkout main
         uses: actions/checkout@v2
         with:
           ref: main
           path: main
 
-      - name: Get and compare main version number
-        run: |
-          OLD_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+      - name: Get new chart version number
+        run: | 
+          ERROR=false
+          NEW_VERSION=$(grep "version: " new/chart/Chart.yaml | cut -f2 -d' ')
+          OLD_VERSION=$(grep "version: " main/chart/Chart.yaml | cut -f2 -d' ')
+          VALUES_VERSION=$(grep "tag: " new/chart/values.yaml | cut -f2 -d'"')
+          echo "New helm Chart version is: '$HELM_VERSION'"
           echo "Old helm Chart version is: '$OLD_VERSION'"
-          if [ "$HELM_VERSION" == "$OLD_VERSION" ]; then
-            echo "Chart version number has not been updated."
-            exit 1
+          
+          if [ "${{ env.CHECK_VALUES_FILE }}" == "true" ]; then
+            echo "Helm values version is: '$VALUES_VERSION'"
+            if [ "$NEW_VERSION" != "$VALUES_VERSION" ]; then
+              echo "Chart and values file versions do not match."
+              ERROR=true
+            fi
           fi
+          
+          if [ "$NEW_VERSION" == "$OLD_VERSION" ]; then
+            echo "Chart version number has not been updated."
+            ERROR=true
+          fi
+          
+          if [ $ERROR == 'true' ]; then exit 1
