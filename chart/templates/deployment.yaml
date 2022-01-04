@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ include "chart.fullname" . }}
   labels:
-    {{- include "chart.labels" . | nindent 4 }}
+    {{- toYaml .Values.labels | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
