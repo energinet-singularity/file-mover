@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CHECK_VALUES_FILE: 0
+  CHECK_VALUES_FILE: ${{ false }}
 
 jobs:
   get-version-numbers:
@@ -22,15 +22,13 @@ jobs:
         run: | 
           HELM_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
           echo "New helm Chart version is: '$HELM_VERSION'"
-      
-      - name: Get and compare new values version number
-        if: ${{ env.CHECK_VALUES_FILE }}
-        run: |
-          VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
-          echo "Helm values version is: '$VALUES_VERSION'"
-          if [ "$HELM_VERSION" != "$VALUES_VERSION" ]; then
-            echo "Chart and values file versions do not match."
-            exit 1
+          if [ ${{ env.CHECK_VALUES_FILE }} ]; then
+            VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
+            echo "Helm values version is: '$VALUES_VERSION'"
+            if [ "$HELM_VERSION" != "$VALUES_VERSION" ]; then
+              echo "Chart and values file versions do not match."
+              exit 1
+            fi
           fi
           
       - name: Checkout main
