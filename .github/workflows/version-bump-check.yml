@@ -40,8 +40,8 @@ jobs:
 
       - name: Get latest package version number
         run: |
-          curl https://ghcr.io/token\?scope\="repository:USER/IMAGE:pull"
+          curl https://ghcr.io/token\?scope\="repository:energinet-singularity/file-mover:pull"
           #{"token":"{TOKEN}"}
-          curl -H "Authorization: Bearer {TOKEN}" https://ghcr.io/v2/USER/IMAGE/tags/list
+          curl -H "Authorization: Bearer {TOKEN}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
           #{"name":"USER/IMAGE","tags":["2.7.5-arm64","2.7.5-armhf","2.7.5-amd64"]}        
           #curl https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
