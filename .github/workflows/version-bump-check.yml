@@ -33,4 +33,4 @@ jobs:
 
       - name: Get latest package version number
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
+          curl -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
