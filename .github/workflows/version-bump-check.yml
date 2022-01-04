@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CHECK_VALUES_FILE: false
+  CHECK_VALUES_FILE: ${{ false }}
 
 jobs:
   get-version-numbers:
