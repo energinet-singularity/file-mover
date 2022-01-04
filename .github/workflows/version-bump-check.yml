@@ -31,17 +31,6 @@ jobs:
             exit 1
           fi
 
-      - name: Log in to the Container registry
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Get latest package version number
         run: |
-          curl https://ghcr.io/token\?scope\="repository:energinet-singularity/file-mover:pull"
-          #{"token":"{TOKEN}"}
-          curl -H "Authorization: Bearer {TOKEN}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
-          #{"name":"USER/IMAGE","tags":["2.7.5-arm64","2.7.5-armhf","2.7.5-amd64"]}        
-          #curl https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
