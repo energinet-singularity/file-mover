@@ -26,7 +26,7 @@ jobs:
           # To skip version checking of version in values file, comment out the rest of this step
           VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
           echo "Helm values version is: $VALUES_VERSION"
-          [ "$HELM_VERSION" != "$VALUES_VERSION" ] && echo "Chart and values file versions do not match." && exit 1
+          [ "$HELM_VERSION" != "$VALUES_VERSION" ] && exit 1
 
       - name: Log in to the Container registry
         uses: docker/login-action@v1
