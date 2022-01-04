@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CHECK_VALUES_FILE: false
+  CHECK_VALUES_FILE: true
 
 jobs:
   get-version-numbers:
@@ -32,7 +32,7 @@ jobs:
           NEW_VERSION=$(grep "version: " new/chart/Chart.yaml | cut -f2 -d' ')
           OLD_VERSION=$(grep "version: " main/chart/Chart.yaml | cut -f2 -d' ')
           VALUES_VERSION=$(grep "tag: " new/chart/values.yaml | cut -f2 -d'"')
-          echo "New helm Chart version is: '$HELM_VERSION'"
+          echo "New helm Chart version is: '$NEW_VERSION'"
           echo "Old helm Chart version is: '$OLD_VERSION'"
           
           if [ "${{ env.CHECK_VALUES_FILE }}" == "true" ]; then
@@ -48,4 +48,7 @@ jobs:
             ERROR=true
           fi
           
-          if [ $ERROR == 'true' ]; then exit 1
+          if [ $ERROR == 'true' ]; then
+            exit 1
+          fi
+          
