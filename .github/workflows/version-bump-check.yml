@@ -27,9 +27,8 @@ jobs:
           VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
           echo "Helm values version is: '$VALUES_VERSION'"
           if [ "$HELM_VERSION" != "$VALUES_VERSION" ]; then
-            echo "does not match"
-          else
-            echo "they match"
+            echo "Chart and values file versions do not match."
+            exit 1
           fi
 
       - name: Log in to the Container registry
@@ -41,4 +40,8 @@ jobs:
 
       - name: Get latest package version number
         run: |
-          curl https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
+          curl https://ghcr.io/token\?scope\="repository:USER/IMAGE:pull"
+          #{"token":"{TOKEN}"}
+          curl -H "Authorization: Bearer {TOKEN}" https://ghcr.io/v2/USER/IMAGE/tags/list
+          #{"name":"USER/IMAGE","tags":["2.7.5-arm64","2.7.5-armhf","2.7.5-amd64"]}        
+          #curl https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
