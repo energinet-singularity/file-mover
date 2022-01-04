@@ -1,0 +1,37 @@
+name: Verify version has changed
+
+on:
+  pull:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  get-version-numbers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get pull version numbers
+        run: | 
+          echo HELM_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ') >> $GITHUB_ENV
+          echo "Helm Chart version is: ${{ env.HELM_VERSION }}"
+          # To skip version checking of version in values file, comment out the rest of this step
+          echo VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"') >> $GITHUB_ENV
+          echo "Helm values version sis: ${{ env.VALUES_VERSION }}"
+          [ "${{ env.HELM_VERSION }}" != "${{ env.VALUES_VERSION }}" ] && exit 1
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get latest package version number
+        run: |
+          curl https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
