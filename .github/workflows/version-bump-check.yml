@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        
       - name: Get pull version numbers
         run: | 
           echo HELM_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ') >> $GITHUB_ENV
