@@ -31,6 +31,16 @@ jobs:
             exit 1
           fi
 
-      - name: Get latest package version number
+      #- name: Get latest package version number
+      #  run: |
+      #    curl -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v12.2
+
+      - name: List all changed files
         run: |
-          curl -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+            echo "$file was changed"
+          done
