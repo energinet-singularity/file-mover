@@ -8,8 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  CHECK_VALUES_FILE: false
 
 jobs:
   get-version-numbers:
@@ -19,28 +18,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
         
-      - name: Get pull version numbers
+      - name: Get new chart version number
         run: | 
           HELM_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "Helm Chart version is: '$HELM_VERSION'"
-          # To skip version checking of version in values file, comment out the rest of this step
+          echo "New helm Chart version is: '$HELM_VERSION'"
+      
+      - name: Get and compare new values version number
+        if: ${{ env.CHECK_VALUES_FILE }}
+        run: |
           VALUES_VERSION=$(grep "tag: " chart/values.yaml | cut -f2 -d'"')
           echo "Helm values version is: '$VALUES_VERSION'"
           if [ "$HELM_VERSION" != "$VALUES_VERSION" ]; then
             echo "Chart and values file versions do not match."
             exit 1
           fi
+          
+      - name: Checkout main
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          path: main
 
-      #- name: Get latest package version number
-      #  run: |
-      #    curl -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" https://ghcr.io/v2/energinet-singularity/file-mover/tags/list
-
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v12.2
-
-      - name: List all changed files
+      - name: Get and compare main version number
         run: |
-          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            echo "$file was changed"
-          done
+          OLD_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+          echo "Old helm Chart version is: '$OLD_VERSION'"
+          if [ "$HELM_VERSION" == "$OLD_VERSION" ]; then
+            echo "Chart version number has not been updated."
+            exit 1
+          fi
