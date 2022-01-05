@@ -4,6 +4,12 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '.github/**'
+      - 'tests/**'
+      - '.gitignore'
+      - 'README.md'
+      - 'LICENSE'
 
   workflow_dispatch:
 
