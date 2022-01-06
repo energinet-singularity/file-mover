@@ -4,8 +4,12 @@ on:
   pull_request:
     branches:
       - main
-
-  workflow_dispatch:
+    paths-ignore:
+      - '.github/**'
+      - 'tests/**'
+      - '.gitignore'
+      - 'README.md'
+      - 'LICENSE'
 
 env:
   CHECK_VALUES_FILE: true
