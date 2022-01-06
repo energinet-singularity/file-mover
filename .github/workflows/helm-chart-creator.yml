@@ -22,7 +22,6 @@ jobs:
           repository: energinet-singularity/helm-repository
           path: helm
 
-
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
@@ -32,7 +31,7 @@ jobs:
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-      
+
       - name: Package chart
         id: id
         run: |
@@ -53,5 +52,4 @@ jobs:
           echo "Starting in $PWD"
           cd helm
           git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
-          git push 
-          
+          git push
