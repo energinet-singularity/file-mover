@@ -43,6 +43,10 @@ spec:
             {{- end }}
           - name: SLEEPTIME
             value: {{ .Values.smbSleepTime | default 5 | quote }}
+            {{- if .Values.archiveEnable }}
+          - name: ARCHIVE
+            value: {{ .Values.archiveEnable | quote }}
+            {{- end }}
           volumeMounts:
             {{- with .Values.folderMounts }}
             {{- if .input.enabled }}

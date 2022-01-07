@@ -7,7 +7,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/energinet-singularity/file-mover/energinet-singularity/file-mover
   pullPolicy: IfNotPresent
-  tag: "1.0.4"
+  tag: "1.0.6"
 
 #Following settings (credentials) must be commented out if using samba
 #smbUserName: "user"
