@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 # Global variable to remember/show files count of files moved
 filemove_count = 0
 
-def path_join(path: str, filename: str) -> str:
+def join_path(path: str, filename: str) -> str:
     if smbclient._os.is_remote_path(path):
         if path[1] == path[-1]:
             return f"{path}{filename}"
