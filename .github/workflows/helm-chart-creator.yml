@@ -30,21 +30,15 @@ jobs:
         with:
           version: v3.4.0
 
-      - name: Package chart
-        id: meta
+      - name: Pack chart, generate index and update repo
         run: |
           CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=NAME::$CHART_NAME"
           CHART_VERSION=$(grep "version: " local/chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=VERSION::$CHART_VERSION"
           cd helm
           helm package "../local/chart/"
-
-      - name: Generate new index and update repository
-        run: |
-          cd helm
           helm repo index .
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git commit -m "Autopack/${{ steps.meta.NAME }}/v:${{ steps.meta.VERSION }}"
-          #git push
+          git add .
+          git commit -m "Autopack/$CHART_NAME/v:$CHART_VERSION"
+          git push
