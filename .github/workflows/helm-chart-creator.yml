@@ -36,11 +36,11 @@ jobs:
         id: id
         run: |
           helm package chart/
-          CHART_NAME=$(grep "name: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=NAME::$CHART_NAME"
-          CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=VERSION::$CHART_VERSION"
-          mv ${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz helm/
+          #CHART_NAME=$(grep "name: " chart/Chart.yaml | cut -f2 -d' ')
+          #echo "::set-output name=NAME::$CHART_NAME"
+          #CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+          #echo "::set-output name=VERSION::$CHART_VERSION"
+          #mv ${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz helm/
 
       - name: Generate new index
         run: |
@@ -50,6 +50,6 @@ jobs:
       - name: Update repository
         run: |
           echo "Starting in $PWD"
-          cd helm
-          git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
-          git push
+          #cd helm
+          #git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
+          #git push
