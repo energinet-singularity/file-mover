@@ -32,15 +32,6 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Package chart
-        run: |
-          helm package chart/
-          #CHART_NAME=$(grep "name: " chart/Chart.yaml | cut -f2 -d' ')
-          #echo "::set-output name=NAME::$CHART_NAME"
-          #CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
-          #echo "::set-output name=VERSION::$CHART_VERSION"
-          #mv ${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz helm/
-
       - name: Generate new index
         run: |
           cd helm
