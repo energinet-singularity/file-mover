@@ -36,7 +36,7 @@ jobs:
         id: id
         run: |
           helm package chart/
-          CHART_NAME=$(grep "name: " main/chart/Chart.yaml | cut -f2 -d' ')
+          CHART_NAME=$(grep "name: " chart/Chart.yaml | cut -f2 -d' ')
           echo "::set-output name=NAME::$CHART_NAME"
           CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
           echo "::set-output name=VERSION::$CHART_VERSION"
