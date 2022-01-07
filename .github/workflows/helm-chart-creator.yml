@@ -12,6 +12,8 @@ on:
 jobs:
   package-and-push:
     runs-on: ubuntu-latest
+    env:
+      HELM_REPO: energinet-singularity/helm-registry
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -21,7 +23,7 @@ jobs:
       - name: Checkout helm-registry
         uses: actions/checkout@v2
         with:
-          repository: energinet-singularity/helm-registry
+          repository: ${{ env.HELM_REPO }}
           path: helm
           branch: main
 
@@ -31,14 +33,16 @@ jobs:
           version: v3.4.0
 
       - name: Pack chart, generate index and update repo
+        env:
+          GIT_USERNAME: singu-bot
         run: |
           CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
           CHART_VERSION=$(grep "version: " local/chart/Chart.yaml | cut -f2 -d' ')
           cd helm
           helm package "../local/chart/"
           helm repo index .
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config user.name "${{ env.GIT_USERNAME }}"
+          git config user.email "${{ secrets.SINGU_BOT_EMAIL }}"
           git add .
           git commit -m "Autopack/$CHART_NAME/v:$CHART_VERSION"
-          git push
+          git push "https://${{ env.GIT_USERNAME }}:${{ secrets.SINGU_BOT_TOKEN }}@github.com/${{ env.HELM_REPO }}" main:main
