@@ -31,8 +31,12 @@ jobs:
           version: v3.4.0
 
       - name: Package chart
+        id: meta
         run: |
           CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
+          echo "::set-output name=NAME::$CHART_NAME"
+          CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+          echo "::set-output name=VERSION::$CHART_VERSION"
 
       - name: Generate new index
         run: |
@@ -42,6 +46,6 @@ jobs:
       - name: Update repository
         run: |
           echo "Starting in $PWD"
-          #cd helm
-          #git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
+          cd helm
+          git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
           #git push
