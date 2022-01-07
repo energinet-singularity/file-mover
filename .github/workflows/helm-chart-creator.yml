@@ -1,0 +1,55 @@
+name: Package and push helm-charts
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chart/**'
+
+  workflow_dispatch:
+
+jobs:
+  package-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkout helm-registry
+        uses: actions/checkout@v2
+        with:
+          repository: energinet-singularity/helm-repository
+          path: helm
+
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+
+      - name: Configure environment
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Package chart
+        id: id
+        run: |
+          helm package chart/
+          CHART_NAME=$(grep "name: " main/chart/Chart.yaml | cut -f2 -d' ')
+          echo "::set-output name=NAME::$CHART_NAME"
+          CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+          echo "::set-output name=VERSION::$CHART_VERSION"
+          mv ${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz helm/
+
+      - name: Generate new index
+        run: |
+          cd helm
+          helm repo index .
+
+      - name: Update repository
+        run: |
+          echo "Starting in $PWD"
+          cd helm
+          git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
+          git push
