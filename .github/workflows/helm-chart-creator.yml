@@ -30,10 +30,9 @@ jobs:
         with:
           version: v3.4.0
 
-      - name: Configure environment
+      - name: Package chart
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
 
       - name: Generate new index
         run: |
