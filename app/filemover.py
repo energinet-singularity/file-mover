@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 # Global variable to remember/show files count of files moved
 filemove_count = 0
 
+
 def join_path(path: str, filename: str) -> str:
     if smbclient._os.is_remote_path(path):
         if path[1] == path[-1]:
@@ -101,10 +102,8 @@ def write_file(path: str, filedict: dict, filename_prepend: str = ''):
 
     # Load relevant lib into local variables
     if smbclient._os.is_remote_path(path):
-        client_path = smb_path
         write_func = smbclient.open_file
     else:
-        client_path = os_path
         write_func = open
 
     # Iterate through elements in the dictionary
