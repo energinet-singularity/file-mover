@@ -16,6 +16,15 @@ log = logging.getLogger(__name__)
 # Global variable to remember/show files count of files moved
 filemove_count = 0
 
+def path_join(path: str, filename: str) -> str:
+    if smbclient._os.is_remote_path(path):
+        if path[1] == path[-1]:
+            return f"{path}{filename}"
+        else:
+            return f"{path}{path[1]}{filename}"
+    else:
+        return os.path.join(path, filename)
+
 
 def read_files(path: str, file_ignore: dict = None, delete_files: bool = False) -> dict:
     """This function will read files from path and return them in a dict
@@ -48,8 +57,8 @@ def read_files(path: str, file_ignore: dict = None, delete_files: bool = False) 
         read_func = open
 
     # Go through the files in the directory
-    for input_file_name in [fi for fi in client.listdir(path) if client_path.isfile(client_path.join(path, fi))]:
-        input_file = client_path.join(path, input_file_name)
+    for input_file_name in [fi for fi in client.listdir(path) if client_path.isfile(join_path(path, fi))]:
+        input_file = join_path(path, input_file_name)
         log.debug(f"Accessing file '{input_file}'")
 
         if not (input_file in file_ignore.keys() and file_ignore[input_file] == client_path.getmtime(input_file)):
@@ -101,7 +110,7 @@ def write_file(path: str, filedict: dict, filename_prepend: str = ''):
     # Iterate through elements in the dictionary
     for output_file in filedict:
         try:
-            with write_func(client_path.join(path, filename_prepend + output_file), "wb") as out_file:
+            with write_func(join_path(path, filename_prepend + output_file), "wb") as out_file:
                 out_file.write(filedict[output_file])
             log.debug(f"File '{filename_prepend + output_file}' written to output folder '{path}'.")
         except Exception:
@@ -217,7 +226,7 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
 
     # Iterate over files in path and check their age agains max_file_age_days
     file_del_count = 0
-    filelist = [client_path.join(path, fi) for fi in client.listdir(path) if client_path.isfile(client_path.join(path, fi))]
+    filelist = [join_path(path, fi) for fi in client.listdir(path) if client_path.isfile(join_path(path, fi))]
     for file in filelist:
         if (time.time() - os.path.getmtime(file))/86400 > max_file_age_days:
             try:
