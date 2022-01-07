@@ -1,4 +1,4 @@
 apiVersion: v2
 name: file-mover
 description: A Helm chart energinet-singularity/file-mover
-version: 1.0.5
+version: 1.0.6
