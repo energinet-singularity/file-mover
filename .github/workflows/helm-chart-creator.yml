@@ -35,17 +35,16 @@ jobs:
         run: |
           CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
           echo "::set-output name=NAME::$CHART_NAME"
-          CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
+          CHART_VERSION=$(grep "version: " local/chart/Chart.yaml | cut -f2 -d' ')
           echo "::set-output name=VERSION::$CHART_VERSION"
+          cd helm
+          helm package "../local/chart/"
 
-      - name: Generate new index
+      - name: Generate new index and update repository
         run: |
           cd helm
           helm repo index .
-
-      - name: Update repository
-        run: |
-          echo "Starting in $PWD"
-          cd helm
-          git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git commit -m "Autopack/${{ steps.meta.NAME }}/v:${{ steps.meta.VERSION }}"
           #git push
