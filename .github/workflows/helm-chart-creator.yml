@@ -23,6 +23,7 @@ jobs:
         with:
           repository: energinet-singularity/helm-registry
           path: helm
+          branch: main
 
       - name: Install Helm
         uses: azure/setup-helm@v1
