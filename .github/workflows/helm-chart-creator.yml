@@ -15,11 +15,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          path: local
 
       - name: Checkout helm-registry
         uses: actions/checkout@v2
         with:
-          repository: energinet-singularity/helm-repository
+          repository: energinet-singularity/helm-registry
           path: helm
 
       - name: Install Helm
