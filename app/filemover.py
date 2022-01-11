@@ -27,6 +27,16 @@ def join_path(path: str, filename: str) -> str:
         return os.path.join(path, filename)
 
 
+def makedir(path: str, dirname: str):
+    try:
+        if smbclient._os.is_remote_path(path):
+            smbclient.mkdir(join_path(path, dirname))
+        else:
+            os.mkdir(join_path(path, dirname))
+    except Exception:
+        log.exception(f"Could not create directory '{dirname}' in '{path}' - archiving will be disabled.")
+
+
 def read_files(path: str, file_ignore: dict = None, delete_files: bool = False) -> dict:
     """This function will read files from path and return them in a dict
 
@@ -167,7 +177,7 @@ def move_files(input_path: str, output_path: str, archive_path: str = '', file_i
 
     :param str input_path: Path to read files from
     :param str output_path: Path to write files to
-    :param str atchive_path: Path to archive files ('' = no archiving)
+    :param str archive_path: Path to archive files ('' = no archiving)
     :param file_ignore: Dict with files to ignore {'/path/to/file.txt': <mtime>, ..}
     :type file_ignore: dict(str, time)
     :param bool delete_files: If set, files will be removed if possible
@@ -216,7 +226,7 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
     """
 
     # Load relevant lib into local variables
-    if smbclient._os.is_remote_path(input_path):
+    if smbclient._os.is_remote_path(path):
         client = smbclient
         client_path = smb_path
     else:
@@ -230,14 +240,15 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
         if (time.time() - os.path.getmtime(file))/86400 > max_file_age_days:
             try:
                 client.remove(file)
-                file_del_count += 1
             except Exception:
                 log.exception(f"Was not allowed to delete file '{file}'.")
+            else:
+                file_del_count += 1
 
     return len(filelist), file_del_count
 
 
-def validate_path(path: str):
+def validate_path(path: str, silent: bool = False):
     # Load relevant lib into local variables
     if smbclient._os.is_remote_path(path):
         client_path = smb_path
@@ -245,31 +256,44 @@ def validate_path(path: str):
         client_path = os_path
 
     # Verify path exists and is reachable - handle errors as intelligent as possible.
-    try:
-        if not client_path.isdir(path):
-            raise FileNotFoundError(f"'{path}' is not a valid directory.")
-    except FileNotFoundError:
-        log.exception("File not found")
-        return False
-    except ValueError as e:
-        log.exception("SMB server not found. {}".format(str(e).split(":")[-1]))
-        return False
-    except Exception as e:
-        if type(e).__name__ == 'SMBAuthenticationError':
-            log.exception("Authentication error when connecting to fileshare.")
-        elif type(e).__name__ == 'SMBException' or type(e).__name__ == 'NotFound':
-            log.exception(e)
-        else:
-            log.exception("An unhandled exception of type {0} occurred. Arguments:\n{1!r}".format(type(e).__name__, e.args))
-        return False
+    if silent:
+        try:
+            if client_path.isdir(path):
+                return True
+            else:
+                return False
+        except Exception:
+            return False
     else:
-        return True
+        try:
+            if not client_path.isdir(path):
+                raise FileNotFoundError(f"'{path}' is not a valid directory.")
+        except FileNotFoundError:
+            log.exception("File not found")
+            return False
+        except ValueError as e:
+            log.exception("SMB server not found. {}".format(str(e).split(":")[-1]))
+            return False
+        except TimeoutError:
+            log.exception("Timeout received when trying to access '{}'".format(path))
+            return False
+        except Exception as e:
+            if type(e).__name__ == 'SMBAuthenticationError':
+                log.exception("Authentication error when connecting to fileshare.")
+            elif type(e).__name__ == 'SMBException' or type(e).__name__ == 'NotFound':
+                log.exception(e)
+            else:
+                log.exception("An unhandled exception of type {0} occurred. Args:\n{1!r}".format(type(e).__name__, e.args))
+            return False
+        else:
+            return True
 
 
 # Main code
 if __name__ == "__main__":
-    # Setup logging for client output
-    logging.basicConfig(format="%(levelname)s:%(asctime)s:%(name)s - %(message)s", level=logging.INFO)
+    # Setup logging for client output (__main__ should output INFO-level, everything else stays at WARNING)
+    logging.basicConfig(format="%(levelname)s:%(asctime)s:%(name)s - %(message)s")
+    logging.getLogger(__name__).setLevel(logging.INFO)
 
     # Initialize scheduler
     timer = scheduler(time.time, time.sleep)
@@ -277,45 +301,52 @@ if __name__ == "__main__":
     # SMB Username and Password, if SMB is used
     smb_username = os.environ.get('SMB_USERNAME')
     smb_password = os.environ.get('SMB_PASSWORD')
+
+    # Paths
+    input_path = os.environ.get('SMB_INPUTPATH', '/input')
+    output_path = os.environ.get('SMB_OUTPUTPATH', '/output')
+
+    # Output the initial state to the log
+    log.info('Initializing filemover script with following settings:')
+    log.info(f'- SMB USERNAME: {smb_username if smb_username != None else "<EMPTY>"}')
+    log.info(f'- SMB PASSWORD: {"<HIDDEN>" if smb_password != None else "<EMPTY>"}')
+    log.info(f'- INPUT PATH: {input_path}')
+    log.info(f'- OUTPUT PATH: {output_path}')
+
+    # Setup SMB and verify paths are valid
     if smb_username is not None:
         smbclient.ClientConfig(username=smb_username, password=smb_password)
-
-    # Paths (Add a slash/backslash to end of filepaths if not there)
-    input_path = os.environ.get('SMB_INPUTPATH', '/input')
-    if input_path[-1] != input_path[0]:
-        input_path = f"{input_path}{input_path[0]}"
     if not validate_path(input_path):
         raise FileNotFoundError(f"Error: Something is wrong with input directory ({input_path})")
-
-    output_path = os.environ.get('SMB_OUTPUTPATH', '/output')
-    if output_path[-1] != output_path[0]:
-        output_path = f"{output_path}{output_path[0]}"
     if not validate_path(output_path):
         raise FileNotFoundError(f"Error: Something is wrong with output directory ({output_path})")
 
+    # Setup archive-settings
     archive = (os.environ.get('ARCHIVE', 'FALSE')).upper() != 'FALSE'
     if archive:
-        archive_path = f"{output_path}archive{output_path[0]}"
+        archive_path = join_path(output_path, "archive")
         archive_cleanup_hours = int(os.environ.get('ARCHIVE_CLEAN_INTERVAL_H', 24))
         archive_max_age_days = int(os.environ.get('ARCHIVE_MAX_AGE_D', 60))
-        if not validate_path(archive_path):
-            raise FileNotFoundError(f"Error: Something is wrong with archive directory ({archive_path})")
-        timer.enter(300, 1, path_cleanup_timer, (timer, archive_cleanup_hours, archive_path, archive_max_age_days))
+
+        # Check archive folder exists, otherwise try to create it.
+        if not validate_path(archive_path, True):
+            makedir(output_path, "archive")
+
+        if validate_path(archive_path):
+            # Initialize cleanup timer - first run in 5 minutes, after that use custom value
+            timer.enter(300, 1, path_cleanup_timer, (timer, archive_cleanup_hours, archive_path, archive_max_age_days))
+        else:
+            archive_path = ''
     else:
         archive_path = ''
 
-    # Runtime-relevant variables (most loaded from environment)
+    # Get runtime-relevant variables (most loaded from environment)
     read_wait = int(os.environ.get('SLEEPTIME', 5))
     verbose = (os.environ.get('VERBOSE', 'FALSE')).upper() != 'FALSE'
     delete_files = (os.environ.get('CLEAR_INPUT', 'FALSE')).upper() != 'FALSE'
 
-    # Output the initial state to the log
-    log.info('Starting filemover script with following settings:')
-    log.info(f'- SMB USERNAME: {smb_username}')
-    log.info(f'- SMB PASSWORD: {"<HIDDEN>" if smb_password != None else smb_password}')
-    log.info(f'- INPUT PATH: {input_path}')
-    log.info(f'- OUTPUT PATH: {output_path}')
-    if archive:
+    # Output remainging settings to log
+    if archive_path != '':
         log.info('- ARCHIVING: ENABLED')
         log.info(f'- - PATH: {archive_path}')
         log.info(f'- - CLEAN INTERVAL: {archive_cleanup_hours} hours')
