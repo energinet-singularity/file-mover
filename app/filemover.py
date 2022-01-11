@@ -237,7 +237,7 @@ def path_cleanup(path: str, max_file_age_days: int) -> (int, int):
     file_del_count = 0
     filelist = [join_path(path, fi) for fi in client.listdir(path) if client_path.isfile(join_path(path, fi))]
     for file in filelist:
-        if (time.time() - os.path.getmtime(file))/86400 > max_file_age_days:
+        if (time.time() - client_path.getmtime(file))/86400 > max_file_age_days:
             try:
                 client.remove(file)
             except Exception:
