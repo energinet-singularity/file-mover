@@ -40,7 +40,8 @@ jobs:
           CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
           CHART_VERSION=$(grep "version: " local/chart/Chart.yaml | cut -f2 -d' ')
           
-          # Package and build index-file
+          # Update dependencies, package chart and build index-file
+          helm dependency update "local/chart/"
           cd helm
           helm package "../local/chart/"
           helm repo index .
