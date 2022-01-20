@@ -42,13 +42,14 @@ jobs:
           echo "${{ secrets.XXX }}"
           echo  "--:${{ secrets.XXX }}:--" > test.txt
           cat test.txt
-          helm package "../local/chart/"
-          helm repo index .
-          git config user.name "${{ env.GIT_USERNAME }}"
-          git config user.email "${{ secrets.SINGU_BOT_EMAIL }}"
-          git remote add origin https://{username}:{password}@github.com/{username}/project.git
-          git add .
-          git commit -m "Autopack/$CHART_NAME/v:$CHART_VERSION"
-          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+          expr length "${{ secrets.XXX }}"
+          #helm package "../local/chart/"
+          #helm repo index .
+          #git config user.name "${{ env.GIT_USERNAME }}"
+          #git config user.email "${{ secrets.SINGU_BOT_EMAIL }}"
+          #git remote add origin https://{username}:{password}@github.com/{username}/project.git
+          #git add .
+          #git commit -m "Autopack/$CHART_NAME/v:$CHART_VERSION"
+          #git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
           #git push "https://${{ secrets.SINGU_BOT_TOKEN }}@github.com/${{ env.HELM_REPO }}" main:main
           #git push https://${{ secrets.SINGU_BOT_TOKEN }}@github.com/${{ env.HELM_REPO }}.git main
