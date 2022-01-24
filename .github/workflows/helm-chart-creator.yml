@@ -12,44 +12,46 @@ on:
 jobs:
   package-and-push:
     runs-on: ubuntu-latest
+    env:
+      HELM_REPO: energinet-singularity/helm-registry
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          path: local
 
       - name: Checkout helm-registry
         uses: actions/checkout@v2
         with:
-          repository: energinet-singularity/helm-repository
+          repository: ${{ env.HELM_REPO }}
           path: helm
+          branch: main
 
       - name: Install Helm
         uses: azure/setup-helm@v1
         with:
           version: v3.4.0
 
-      - name: Configure environment
+      - name: Pack chart, generate index and update repo
+        env:
+          GIT_USERNAME: singu-bot
         run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-      - name: Package chart
-        id: id
-        run: |
-          helm package chart/
-          CHART_NAME=$(grep "name: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=NAME::$CHART_NAME"
-          CHART_VERSION=$(grep "version: " chart/Chart.yaml | cut -f2 -d' ')
-          echo "::set-output name=VERSION::$CHART_VERSION"
-          mv ${{ CHART_NAME }}-${{ CHART_VERSION }}.tgz helm/
-
-      - name: Generate new index
-        run: |
+          # Load info from the chart-files
+          CHART_NAME=$(grep "name: " local/chart/Chart.yaml | cut -f2 -d' ')
+          CHART_VERSION=$(grep "version: " local/chart/Chart.yaml | cut -f2 -d' ')
+          
+          # Update dependencies, package chart and build index-file
+          helm dependency update "local/chart/"
           cd helm
+          helm package "../local/chart/"
           helm repo index .
-
-      - name: Update repository
-        run: |
-          echo "Starting in $PWD"
-          cd helm
-          git commit -m "Autopack/${{ steps.id.NAME }}/v:${{ steps.id.VERSION }}"
-          git push
+          
+          # Setup GIT 
+          git config user.name "${{ env.GIT_USERNAME }}"
+          git config user.email "${{ secrets.SINGU_BOT_EMAIL }}"
+          git add .
+          git commit -m "Autopack/$CHART_NAME/v:$CHART_VERSION"
+          git config -l | grep 'http\..*\.extraheader' | cut -d= -f1 | xargs -L1 git config --unset-all
+          
+          # Push changes to repo
+          git push https://${{ secrets.SINGU_BOT_TOKEN }}@github.com/${{ env.HELM_REPO }}.git main
