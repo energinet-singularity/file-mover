@@ -106,12 +106,12 @@ If you have a samba-share, provide the relevant credentials and path (slash is a
 
 The container will now be running interactively and you will be able to see the log output. By placing a file in the source share (in samba or volume depending on your specific configuration) you should soon after see the file appear in the output volume/folder.
 
-To test, you can do a manual file-move to the volume (please verify volume-path is correct before trying this):
+To test, you can do a manual file-move (on the host-machine) to the volume (please verify volume-path is correct before trying this):
 ````bash
 sudo cp testfile.txt.gz /var/lib/docker/volumes/filedrop/_data/
 ````
 
-If the output path is a volume, you can use ls to verify the output (please verify volume-path is correct before trying this):
+If the output path is a volume, you can use ls (on the host-machine) to verify the output (please verify volume-path is correct before trying this):
 ````bash
 sudo ls /var/lib/docker/volumes/sourcevolume/_data/
 ````
