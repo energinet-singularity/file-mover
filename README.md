@@ -18,7 +18,7 @@ This repo contains a python-script that will move files from an input-folder to 
 |ARCHIVE_CLEAN_INTERVAL_H|24|Interval in hours between each archive-folder scan (check for old files)|
 |ARCHIVE_MAX_AGE_D|60|Maximum allowed age of archive-files (in days) before they are deleted|
 |SLEEPTIME|5|Time between each scan of the input-folder, and thereby file-move|
-|CLEAR_INPUT|FALSE|Port of the ksql-server (will be ignored if port is included in KSQL_HOST)|
+|CLEAR_INPUT|FALSE|If not 'FALSE', files will be deleted after being read in 'input' folder|
 
 [^1]: The variable name is misleading - both smb and local paths can be specified here (variable name will probably change in coming versions). SMB paths must be fully qualified - and remember to escape backslash and similar characters.
 
