@@ -86,50 +86,33 @@ smbInputPath: "//localhost/source"
 
 ### Running container
 
+<!-- PLEASE REMEMBER TO UPDATE THIS GUIDE!!! -->
+
 1. Clone the repo to a suitable place
 ````bash
-git clone https://github.com/energinet-singularity/file-mover.git
+git clone http://myrepo.git
 ````
 
-2. Build the container and create a volume
+2. Build the container
 ````bash
-docker build file-mover/ -t file-mover:latest
-docker volume create filedrop
+docker build my_script -t my_script:latest
 ````
 
-3. Start the container in docker (change paths and credentials to fit your environment)
+3. Start the container in docker (change variables to fit your environment)
 ````bash
-docker run -v filedrop:/output -e SMB_USERNAME=foo -e SMB_PASSWORD=bar -e SMB_INPUTPATH=\\\\localhost\\source\\ -it --rm file-mover:latest
-````
-
-If you have a samba-share, provide the relevant credentials and path (slash is an escape-character, so it must be doubled!) - otherwise remove the three environment variables and map another volume using '-v sourcevolume:/input'.
-
-The container will now be running interactively and you will be able to see the log output. By placing a file in the source share (in samba or volume depending on your specific configuration) you should soon after see the file appear in the output volume/folder.
-
-To test, you can do a manual file-move (on the host-machine) to the volume (please verify volume-path is correct before trying this):
-````bash
-sudo cp testfile.txt.gz /var/lib/docker/volumes/filedrop/_data/
-````
-
-If the output path is a volume, you can use ls (on the host-machine) to verify the output (please verify volume-path is correct before trying this):
-````bash
-sudo ls /var/lib/docker/volumes/sourcevolume/_data/
+docker run -e MYVAR=foo -it --rm my_script:latest
 ````
 
 ## Help
-
-See the [open issues](https://github.com/energinet-singularity/file-mover/issues) for a full list of proposed features (and known issues).
+<!-- replace 'open issues' below with link like this: [open issues](https://github.com/energinet-singularity/<repo-name>/issues) -->
+See the open issues for a full list of proposed features (and known issues).
 If you are facing unidentified issues with the application, please submit an issue or ask the authors.
 
 ## Version History
 
-* 1.1.2:
-    * First production-ready version
-    <!---* See [commit change]() or See [release history]()--->
-
-Older versions are not included in the README version history. For detauls on them, see the main-branch commit history, but beware: it was the early start and it was part of the learning curve, so it is not pretty. They are kept as to not disturb the integrity of the history.
+* 0.0.1:
+    * First ever version - nice!
 
 ## License
 
-This project is licensed under the Apache-2.0 License - see the LICENSE.md file for details
-
+This project is licensed under the Apache-2.0 License - see the LICENSE and NOTICE file for further details.
